@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Wildfires Map</title>
+    <style>
+        #map {
+            height: 600px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Wildfires Map</h2>
+
+<!-- Map div -->
+<div id="map"></div>
+
+<script>
+    var map;
+    var markers = [];
+    var heatmap;
+
+    function fetchAndUpdateWildfires() {
+    fetch('/get-wildfires-data')
+    .then(response => response.json())
+    .then(wildfires => {
+        // Clear old markers
+        markers.forEach(marker => marker.setMap(null));
+        markers = [];
+        
+        // Set new markers
+        for (var i = 0; i < wildfires.length; i++) {
+            var wildfire = wildfires[i];
+            var marker = new google.maps.Marker({
+                position: {lat: wildfire.latitude, lng: wildfire.longitude},
+                map: map,
+                title: wildfire.title,
+                icon: {
+                    url:'/static/images/fire_image.png',
+                    scaledSize: new google.maps.Size(15, 15), // the size of the icon
+                }
+            });
+            markers.push(marker);
+        }
+
+        var heatmapData = wildfires.map(function(wildfire) {
+            return {
+                location: new google.maps.LatLng(wildfire.latitude, wildfire.longitude),
+                weight: wildfire.size // use the 'size' property as the weight
+            };
+        });
+
+        if (heatmap) {
+            heatmap.setMap(null);
+        }
+
+        heatmap = new google.maps.visualization.HeatmapLayer({
+            data: heatmapData
+        });
+        heatmap.setMap(map);
+    });
+}
+
+
+    function initMap() {
+        map = new google.maps.Map(document.getElementById('map'), {
+            zoom: 4,
+            center: {lat: 37.7749, lng: -122.4194} // Default to San Francisco
+        });
+
+        fetchAndUpdateWildfires();
+        setInterval(fetchAndUpdateWildfires, 10 * 60 * 1000); // 10 minutes
+    }
+</script>
+
+
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBM7E9NjSIypxtfikypGIkSQfu4T-316nI&libraries=visualization&callback=initMap"></script>
+
+</body>
+</html>
